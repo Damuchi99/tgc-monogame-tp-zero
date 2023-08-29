@@ -78,6 +78,7 @@ namespace TGC.MonoGame.TP
             City = new CityScene(Content);
 
             // La carga de contenido debe ser realizada aca.
+            CarModel = Content.Load<Model>(ContentFolder3D + "scene/car");
 
             base.LoadContent();
         }
@@ -86,6 +87,13 @@ namespace TGC.MonoGame.TP
         ///     Es llamada N veces por segundo. Generalmente 60 veces pero puede ser configurado.
         ///     La logica general debe ser escrita aca, junto al procesamiento de mouse/teclas.
         /// </summary>
+
+        private const float velocidad_lineal = 500f;
+        private const float velocidad_angular = 2f;
+        private float angulo_rotacion = 0f;
+        private float aceleracion = 0f;
+        private Vector3 _posicion = Vector3.Zero;
+
         protected override void Update(GameTime gameTime)
         {
             // Caputo el estado del teclado.
@@ -97,6 +105,40 @@ namespace TGC.MonoGame.TP
             }
 
             // La logica debe ir aca.
+            float seconds = Convert.ToSingle(gameTime.ElapsedGameTime.TotalSeconds);
+
+            if(keyboardState.IsKeyDown(Keys.W)){
+                aceleracion += 0.01f;
+                _posicion += CarWorld.Forward * seconds * velocidad_lineal * aceleracion;
+            }
+
+            if(keyboardState.IsKeyDown(Keys.S)){
+                aceleracion -= 0.01f;
+                _posicion += CarWorld.Forward * seconds * velocidad_lineal * aceleracion;
+            }
+
+            if(keyboardState.IsKeyUp(Keys.W) && keyboardState.IsKeyUp(Keys.S)){
+                if(aceleracion > float.Epsilon){
+                    aceleracion -= 0.01f;
+                }else if(aceleracion < -float.Epsilon){
+                    aceleracion += 0.01f;
+                }else{
+                    aceleracion = 0.0f;
+                }
+                _posicion += CarWorld.Forward * seconds * velocidad_lineal * aceleracion;
+            }
+
+            if(keyboardState.IsKeyDown(Keys.A)){
+                angulo_rotacion += seconds * velocidad_angular;
+            }
+
+            if(keyboardState.IsKeyDown(Keys.D)){
+                angulo_rotacion -= seconds * velocidad_angular;
+            }
+
+            Matrix translationMatrix = Matrix.CreateTranslation(_posicion);
+            Matrix rotationMatrix = Matrix.CreateRotationY(angulo_rotacion);
+            CarWorld = rotationMatrix * translationMatrix;
 
             // Actualizo la camara, enviandole la matriz de mundo del auto.
             FollowCamera.Update(gameTime, CarWorld);
@@ -118,6 +160,7 @@ namespace TGC.MonoGame.TP
             City.Draw(gameTime, FollowCamera.View, FollowCamera.Projection);
 
             // El dibujo del auto debe ir aca.
+            CarModel.Draw(CarWorld, FollowCamera.View, FollowCamera.Projection);
 
             base.Draw(gameTime);
         }
